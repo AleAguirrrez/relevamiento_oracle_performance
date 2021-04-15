@@ -7,4 +7,4 @@ select username,a.sql_id,SQL_EXEC_START, count(*)*10 total_wait_time--,round((co
         and u.user_id=a.user_id 
         and u.username in ( 'SRVCBI','SRVC_TABLEAU') -- SRVCBI(DISCOVERER)   SRVC_TABLEAU(TABLEAU)
         group by a.sql_id,sql_exec_id,u.username,SQL_EXEC_START--,sql_plan_hash_value
-        order by total_wait_time desc;--
+        order by total_wait_time desc;-- hola
