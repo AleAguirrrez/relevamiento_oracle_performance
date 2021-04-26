@@ -52,9 +52,13 @@ DECLARE
         DBMS_OUTPUT.PUT_LINE(lpad('#',50,'#')||chr(13)||'Se modifico la  causa  : '||L_NRO_CAUSA||' pasandola al estado :'||L_ID_ESTADO_CAUSA||chr(13)||lpad('#',50,'#') );
 		IF L_ID_ESTADO_CAUSA = 44
         then 
-             select id_descargo into L_ID_DESCARGO from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_causa in (select id_causa from juzgado.causas where nro_causa=L_NRO_CAUSA);
+             for reg3 in (select id_descargo from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_causa in (select id_causa from juzgado.causas where nro_causa=L_NRO_CAUSA) )
+             LOOP
+               L_ID_DESCARGO:= reg3.id_descargo;
+--             select id_descargo into L_ID_DESCARGO from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_causa in (select id_causa from juzgado.causas where nro_causa=L_NRO_CAUSA);
              -- invalido el descargo 
              update  juzgado.descargos set  estado_descargo='N' where id_descargo in (L_ID_DESCARGO);  
+             END LOOP;
         end if;
         exception
         WHEN NO_DATA_FOUND then

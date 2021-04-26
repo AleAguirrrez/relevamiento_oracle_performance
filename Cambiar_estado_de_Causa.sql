@@ -1,5 +1,5 @@
 -- validas que estado tiene la causa actualmente 
-select T2.ESTADO_CAUSA,T1.* from juzgado.causas T1,JUZGADO.ESTADOS_CAUSAS T2  where T1.ID_ESTADO_CAUSA=T2.ID_ESTADO_CAUSA AND  nro_causa in ('02-074-00274067-5-00');
+select T2.ESTADO_CAUSA,T1.* from juzgado.causas T1,JUZGADO.ESTADOS_CAUSAS T2  where T1.ID_ESTADO_CAUSA=T2.ID_ESTADO_CAUSA AND  nro_causa in ('02-061-00427562-5-00');
 -- ver los estados posibles 
     SELECT * FROM JUZGADO.ESTADOS_CAUSAS;
 --    
@@ -7,9 +7,10 @@ select T2.ESTADO_CAUSA,T1.* from juzgado.causas T1,JUZGADO.ESTADOS_CAUSAS T2  wh
     DECLARE
     L_FEC_ACTUAL DATE:=SYSDATE;
     L_ID_CAUSA NUMBER ;
-    L_NRO_CAUSA VARCHAR2(1000):= '02-079-00021074-9-00';
+    L_NRO_CAUSA VARCHAR2(1000):= '02-061-00427562-5-00';
     L_REL_CAUSA_ESTADO_ANTERIOR NUMBER;
-    L_ID_ESTADO_CAUSA NUMBER :=40; -- VER ESTADO 40 CERRADO --> 66 ANULADA    
+    L_ID_ESTADO_CAUSA NUMBER :=44; -- VER ESTADO 40 CERRADO --> 66 ANULADA    
+    L_ID_DESCARGO integer;
     BEGIN
        --OBTENGO EL ID_CAUSA 
        select ID_CAUSA INTO L_ID_CAUSA from juzgado.causas where nro_causa=L_NRO_CAUSA;
@@ -28,6 +29,16 @@ select T2.ESTADO_CAUSA,T1.* from juzgado.causas T1,JUZGADO.ESTADOS_CAUSAS T2  wh
             loop
                 update FINANZAS.MOVIMIENTOS_DE_CUENTAS set id_estado_movimiento_cuenta=14 where id_movimiento_de_cuenta=reg.ID_MOVIMIENTO_DE_CUENTA;
             end loop;
+        end if;
+		IF L_ID_ESTADO_CAUSA = 44
+        then 
+             for reg3 in (select id_descargo from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_causa in (select id_causa from juzgado.causas where nro_causa=L_NRO_CAUSA) )
+             LOOP
+               L_ID_DESCARGO:= reg3.id_descargo;
+--             select id_descargo into L_ID_DESCARGO from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_causa in (select id_causa from juzgado.causas where nro_causa=L_NRO_CAUSA);
+             -- invalido el descargo 
+             update  juzgado.descargos set  estado_descargo='N' where id_descargo in (L_ID_DESCARGO);  
+             END LOOP;
         end if;
     END;
     /
