@@ -4,11 +4,12 @@ L_FEC_ACTUAL DATE:=SYSDATE;
 L_ID_CAUSA NUMBER ;
 L_ID_RESOLUCION NUMBER ;
 L_REL_CAUSA_ESTADO_ANTERIOR NUMBER;
-L_ID_ESTADO_CAUSA NUMBER :=12; -- 12 CITADA
+L_ID_ESTADO_CAUSA NUMBER :=12; -- 12 CITADA -- 44 CON DESCARGO INVALIDO
 L_NRO_CAUSA varchar2(30)  :='02-061-00427562-5-00';
 L_ID_NOTIFICACION INTEGER  ;
 L_ID_MOVIMIENTO_DE_CUENTA INTEGER;
 L_ID_ESTADO_MOVIMIENTO_CUENTA integer;
+L_ID_DESCARGO integer;
 BEGIN
 --1.- Busco notificaciones y movimientos de cuenta posteriores a la citación y anulo uno por uno
 --FINANZAS.ESTADOS_MOVIMIENTOS_CUENTAS T3
@@ -44,10 +45,28 @@ BEGIN
        -- ACTUALIZO
        update  juzgado.causas set id_estado_causa=L_ID_ESTADO_CAUSA where id_causa=L_ID_CAUSA;
        --OBTENGO EL ID_REL_ESTADO_CAUSA
-       SELECT ID_REL_CAUSA_ESTADO  INTO L_REL_CAUSA_ESTADO_ANTERIOR FROM JUZGADO.REL_CAUSAS_ESTADOS WHERE ID_CAUSA=L_ID_CAUSA AND F_VIGENCIA_HASTA IS NULL;
+       SELECT max(ID_REL_CAUSA_ESTADO)  INTO L_REL_CAUSA_ESTADO_ANTERIOR FROM JUZGADO.REL_CAUSAS_ESTADOS WHERE ID_CAUSA=L_ID_CAUSA AND F_VIGENCIA_HASTA IS NULL;
         INSERT INTO JUZGADO.REL_CAUSAS_ESTADOS (ID_REL_CAUSA_ESTADO,ID_CAUSA,ID_ESTADO_CAUSA,F_VIGENCIA_DESDE,ID_REL_CAUSA_ESTADO_ANTERIOR)
         VALUES (JUZGADO.SQ_ID_REL_CAUSA_ESTADO.NEXTVAL,L_ID_CAUSA,L_ID_ESTADO_CAUSA,L_FEC_ACTUAL,L_REL_CAUSA_ESTADO_ANTERIOR);
         UPDATE JUZGADO.REL_CAUSAS_ESTADOS SET F_VIGENCIA_HASTA=L_FEC_ACTUAL WHERE ID_REL_CAUSA_ESTADO=L_REL_CAUSA_ESTADO_ANTERIOR;
+        IF L_ID_ESTADO_CAUSA = 40
+        then
+            for reg in (SELECT T3.ESTADO_MOVIMIENTO_CUENTA,t2.ID_MOVIMIENTO_DE_CUENTA FROM juzgado.causas T1 ,FINANZAS.MOVIMIENTOS_DE_CUENTAS T2 ,FINANZAS.ESTADOS_MOVIMIENTOS_CUENTAS T3 WHERE T1.ID_CAUSA=T2.ID_CAUSA
+            AND T3.ID_ESTADO_MOVIMIENTO_CUENTA=T2.ID_ESTADO_MOVIMIENTO_CUENTA and t2.id_estado_movimiento_cuenta in (12) AND T1.nro_causa=L_NRO_CAUSA )
+            loop
+                update FINANZAS.MOVIMIENTOS_DE_CUENTAS set id_estado_movimiento_cuenta=14 where id_movimiento_de_cuenta=reg.ID_MOVIMIENTO_DE_CUENTA;
+            end loop;
+        end if;
+        IF L_ID_ESTADO_CAUSA = 44
+        then 
+             for reg3 in (select id_descargo from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_causa in (select id_causa from juzgado.causas where nro_causa=L_NRO_CAUSA) )
+             LOOP
+               L_ID_DESCARGO:= reg3.id_descargo;
+--             select id_descargo into L_ID_DESCARGO from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_causa in (select id_causa from juzgado.causas where nro_causa=L_NRO_CAUSA);
+             -- invalido el descargo 
+             update  juzgado.descargos set  estado_descargo='N' where id_descargo in (L_ID_DESCARGO);  
+             END LOOP;
+        end if;
    -- 4.- Anulo la Resolucion asociada a la causa
    DBMS_OUTPUT.PUT_LINE(lpad('#',50,'#')||chr(13)||'El ID_RESOLUCION  es : '||L_ID_RESOLUCION||chr(13)||lpad('#',50,'#') );
    DBMS_OUTPUT.PUT_LINE('update juzgado.REL_RESOLUCIONES_ESTADOSRESOL rel set ID_ESTADO_RESOLUCION=4 where ID_RESOLUCION='||L_ID_RESOLUCION||';');
