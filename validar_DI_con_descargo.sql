@@ -11,7 +11,7 @@ l_nro_doc_destino integer;
 l_ID_TIPO_DOC_DESTINO integer;
 begin 
 for reg in (select id_persona_destino,nro_doc_destino,id_tipo_doc_destinofrom juzgado.formulario_di
-			where cuit_fuente= 30575170125 and id_estado_formulario_di = '1' 
+			where cuit_fuente= 30712109315 and id_estado_formulario_di = '1' and nro_doc_destino= 22824498
 			--and nro_doc_destino not in (20120520,23248191,24742747,25384881,29953449,32952244,34518164,36740772)  -- descomentar y poner los nro_doc_destino que no mathean en general.personas
 			and sexo_destino IN ('M','F') group by  id_persona_destino,nro_doc_destino,id_tipo_doc_destino order by nro_doc_destino )
 loop
@@ -36,8 +36,8 @@ end;
 --crear la tabla temporal con las imagenes el id es de ejemplo  select * from juzgado.causas_personas where id_causa=15934930 and id_persona=4648895 ;
 drop table aaguirrez.tmp_descargos_img ;
 -- usar in id_persona que extrajimos en el paso anterior 
-create table aaguirrez.tmp_descargos_img as select 6011264 id_persona,DESCRIPCION
-,empty_BLOB() IMAGEN_DESCARGO,B_ESTA_PROCESADO,B_PARA_PROCESAR from JUZGADO.DESCARGOS_DET_IMAGENES where ID_DESCARGO_DOC_ASOCIADA=494802 and rownum <=3; -- sacar el rownum o ampliarselo
+create table aaguirrez.tmp_descargos_img as select 6442370 id_persona,DESCRIPCION
+,empty_BLOB() IMAGEN_DESCARGO,B_ESTA_PROCESADO,B_PARA_PROCESAR from JUZGADO.DESCARGOS_DET_IMAGENES where ID_DESCARGO_DOC_ASOCIADA=494802 and rownum <=1; -- sacar el rownum o ampliarselo
 -- cargo las imagenes
 select rowid,dti.* from aaguirrez.tmp_descargos_img dti order by 1 desc;
 /*===================================================================================================
@@ -92,7 +92,7 @@ DECLARE
 */
 set serveroutput on;
 declare 
-l_cuit integer := 30630402073;  -- CUIT de la empresa
+l_cuit integer := 30712109315;  -- CUIT de la empresa
 l_nro_causa varchar2(100) ; -- esto no va
 l_usuario_alta number := 9387; -- Usuario de sacit con el cual se redireecciona el DI
 l_id_persona_destino number;
@@ -108,6 +108,7 @@ l_id_causa integer;
 begin
 for reg in (select id_persona_destino,nro_doc_destino,ID_TIPO_DOC_DESTINO  from juzgado.formulario_di where cuit_fuente= l_cuit  and id_estado_formulario_di=1   and ( id_persona_destino is not null or ID_TIPO_DOC_DESTINO is not null) and sexo_destino IN ('M','F') 
                --and nro_doc_destino not in (20120520,23248191,24742747,25384881,29953449,32952244,34518164,36740772)  
+               and nro_doc_destino= 22824498
                group by 
                id_persona_destino,nro_doc_destino,ID_TIPO_DOC_DESTINO  )
 LOOP
@@ -137,6 +138,7 @@ END LOOP;
                 where cuit_fuente= l_cuit
                  and id_estado_formulario_di=1 
                  --and nro_doc_destino not in  (20120520,23248191,24742747,25384881,29953449,32952244,34518164,36740772) --and id_persona_destino=4648895
+                 and nro_doc_destino= 22824498
                  and ( id_persona_destino is not null or ID_TIPO_DOC_DESTINO is not null)
                    and sexo_destino IN ('M','F') --and id_causa not in (15934930)
 --                   and nro_causa=l_nro_causa
@@ -194,11 +196,12 @@ END LOOP;
        --OBTENGO EL ID_REL_ESTADO_CAUSA
 --      dbms_output.put_line('INSERT INTO JUZGADO.REL_CAUSAS_ESTADOS (ID_REL_CAUSA_ESTADO,ID_CAUSA,ID_ESTADO_CAUSA,F_VIGENCIA_DESDE,ID_REL_CAUSA_ESTADO_ANTERIOR)
 --         VALUES (JUZGADO.SQ_ID_REL_CAUSA_ESTADO.NEXTVAL,reg.id_causa,L_ID_ESTADO_CAUSA,L_FEC_ACTUAL,L_REL_CAUSA_ESTADO_ANTERIOR)');
-         SELECT ID_REL_CAUSA_ESTADO  INTO L_REL_CAUSA_ESTADO_ANTERIOR FROM JUZGADO.REL_CAUSAS_ESTADOS WHERE ID_CAUSA=reg.id_causa AND F_VIGENCIA_HASTA IS NULL;
+         SELECT max(ID_REL_CAUSA_ESTADO)  INTO L_REL_CAUSA_ESTADO_ANTERIOR FROM JUZGADO.REL_CAUSAS_ESTADOS WHERE ID_CAUSA=reg.id_causa AND F_VIGENCIA_HASTA IS NULL;
+         UPDATE JUZGADO.REL_CAUSAS_ESTADOS SET F_VIGENCIA_HASTA=L_FEC_ACTUAL WHERE ID_CAUSA=reg.id_causa AND F_VIGENCIA_HASTA IS NULL;
          INSERT INTO JUZGADO.REL_CAUSAS_ESTADOS (ID_REL_CAUSA_ESTADO,ID_CAUSA,ID_ESTADO_CAUSA,F_VIGENCIA_DESDE,ID_REL_CAUSA_ESTADO_ANTERIOR)
          VALUES (JUZGADO.SQ_ID_REL_CAUSA_ESTADO.NEXTVAL,reg.id_causa,L_ID_ESTADO_CAUSA,L_FEC_ACTUAL,L_REL_CAUSA_ESTADO_ANTERIOR);
          dbms_output.put_line('UPDATE JUZGADO.REL_CAUSAS_ESTADOS SET F_VIGENCIA_HASTA=L_FEC_ACTUAL WHERE ID_REL_CAUSA_ESTADO=L_REL_CAUSA_ESTADO_ANTERIOR');
-         UPDATE JUZGADO.REL_CAUSAS_ESTADOS SET F_VIGENCIA_HASTA=L_FEC_ACTUAL WHERE ID_REL_CAUSA_ESTADO=L_REL_CAUSA_ESTADO_ANTERIOR;
+--         UPDATE JUZGADO.REL_CAUSAS_ESTADOS SET F_VIGENCIA_HASTA=L_FEC_ACTUAL WHERE ID_REL_CAUSA_ESTADO=L_REL_CAUSA_ESTADO_ANTERIOR;
          
          -- agregado relacion descargo casusa
          select id_causa into l_id_causa from juzgado.causas where nro_causa=reg.nro_causa;
@@ -214,12 +217,12 @@ end;
 --validacion 1 : deberia devolver vacio excepto por los nro_doc_destino que excluimos 
 select *
 from juzgado.formulario_di
-where cuit_fuente= 30630402073
+where cuit_fuente= 30712109315
 and id_estado_formulario_di = '1' --and id_causa = 15934930
-and sexo_destino IN ('M','F')
+and sexo_destino IN ('M','F') and nro_doc_destino= 22824498
 --and nro_causa ='02-007-00050773-3-00' -- id_causa=10066091
 --or nro_causa = '02-030-00275007-3-00' -- id_causa=9419964
-order by id_estado_formulario_di desc;
+order by nro_causa desc;
 -- aca reemplazar el in por todos los id_descargo que generamos ene l paso dos 
 -- deberia devolver el mismo numero que el total de causas
 select * from JUZGADO.REL_DESCARGOS_CAUSA rrc where id_descargo in (522063,522064,522065,522066,522067,522068,522069,522070,522071,522072,522073,522074,522075,522076,522077);
