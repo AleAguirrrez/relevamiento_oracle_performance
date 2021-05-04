@@ -1,7 +1,7 @@
 set serveroutput on;
 declare 
 l_cuit integer := 33500005179;  -- CUIT de la empresa
-l_nro_causa varchar2(100) :='02-007-00050773-3-00'; -- esto no va
+l_nro_causa varchar2(100) ; -- esto no va
 l_usuario_alta number := 9387; -- Usuario de sacit con el cual se redireecciona el DI
 l_id_persona_destino number;
 l_id_causa_persona number;
